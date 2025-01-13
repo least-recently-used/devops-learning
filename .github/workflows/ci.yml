@@ -1,4 +1,4 @@
-name: CI Workflow
+name: CI Workflow with MySQL
 
 on:
   push:
@@ -10,6 +10,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: taskdb
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
       # Step 1: Checkout the code
       - name: Checkout code
@@ -20,8 +34,17 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '17'
 
-      # Step 3: Build and Test the Application
+      # Step 3: Wait for MySQL to be ready
+      - name: Wait for MySQL
+        run: sleep 20
+
+      # Step 4: Build and test the application
       - name: Build with Maven
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/taskdb
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: rootpassword
         run: mvn clean install
+
